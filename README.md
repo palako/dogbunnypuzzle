@@ -11,3 +11,5 @@ The algorithm won't stop after finding a solution, and thus continues finding ev
 arriving at the shortest at 26 steps.
 
 This was just a short fun project to come back to sake the cobwebs in Rust which I had not touched in a good while.
+
+Everything is very hardcoded, since at the time of solving there is only one variant of the game but the author mentioned on twitter that was working on making more. Once something else if published I'll probably come back to this to be able to parametrise the graph, initial and end states, conditions, etc..
