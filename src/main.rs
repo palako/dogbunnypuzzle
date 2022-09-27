@@ -3,7 +3,7 @@ struct Graph {
     graph: [[u8; 7]; 7],
     current_state:[usize; 3],
     final_state:[usize; 3],
-    visited:[[[bool; 7]; 7]; 7],
+    visited:[[[u32; 7]; 7]; 7],
     solution:Vec<[usize;3]>,
 }
 
@@ -21,7 +21,7 @@ impl Graph {
         ];
         self.current_state = [1, 2, 3];
         self.final_state =  [6, 6, 0];
-        self.visited = [[[false as bool; 7]; 7]; 7];
+        self.visited = [[[0; 7]; 7]; 7];
         self.solution = Vec::new();
     }
 
@@ -62,19 +62,27 @@ impl Graph {
     }
 
     
-    fn allowed_next_states(&self) -> Vec<[usize; 3]> {
+    // fn allowed_next_states_from_current_state(&self) -> Vec<[usize; 3]> {
+    //     self.allowed_next_states(self.current_state)
+    // }
+
+    fn allowed_next_states(&self, state:[usize;3]) -> Vec<[usize; 3]> {
         let mut allowed_states:Vec<[usize;3]> = Vec::new();
         for who in 0..3 {
-            allowed_states.append(&mut self.allowed_moves(who));
+            allowed_states.append(&mut self.allowed_moves(who, state));
         }
         allowed_states
     }
 
-    fn allowed_moves(&self, who:usize) -> Vec<[usize; 3]> {
+    // fn allowed_moves_from_current_state(&self, who:usize) -> Vec<[usize; 3]> {
+    //     self.allowed_moves(who, self.current_state)
+    // }
+
+    fn allowed_moves(&self, who:usize, state:[usize;3]) -> Vec<[usize; 3]> {
         let mut moves:Vec<[usize;3]> = Vec::new();
         for to in 0..7 {
-            if self.is_move_allowed(self.current_state[who], to) {
-                let mut state:[usize; 3] = self.current_state.clone();
+            if self.is_move_allowed(state[who], to) {
+                let mut state:[usize; 3] = state.clone();
                 state[who] = to;
                 moves.push(state);
             }
@@ -82,49 +90,56 @@ impl Graph {
         moves
     }
 
-    fn update_position(&mut self, who:usize, to:usize) {
-        if self.is_move_allowed(self.current_state[who], to) {
-            self.current_state[who] = to;
-        } else {
-            panic!("Illegal move {} to {}", self.current_state[who], to);
-        }
+    // fn update_position(&mut self, who:usize, to:usize) {
+    //     if self.is_move_allowed(self.current_state[who], to) {
+    //         self.current_state[who] = to;
+    //     } else {
+    //         panic!("Illegal move {} to {}", self.current_state[who], to);
+    //     }
+    // }
+
+    // fn update_state(&mut self, to:[usize;3]) {
+    //     if to[0] != self.current_state[0] {
+    //         self.update_position(0, to[0]);
+    //         return;
+    //     } else if to[1] != self.current_state[1] {
+    //         self.update_position(1, to[1]);
+    //         return;
+    //     } else if to [2] != self.current_state[2] {
+    //         self.update_position(2, to[2]);
+    //         return;
+    //     }
+    // }
+
+    // fn is_solved(&self) -> bool {
+    //     self.is_solution(self.current_state)
+    // }
+
+    fn is_solution(&self, s:[usize;3]) -> bool{
+        s[0] == self.final_state[0] &&
+        s[1] == self.final_state[1] &&
+        s[2] == self.final_state[2]
     }
 
-    fn update_state(&mut self, to:[usize;3]) {
-        if to[0] != self.current_state[0] {
-            self.update_position(0, to[0]);
-            return;
-        } else if to[1] != self.current_state[1] {
-            self.update_position(1, to[1]);
-            return;
-        } else if to [2] != self.current_state[2] {
-            self.update_position(2, to[2]);
-            return;
-        }
-    }
-
-    fn is_solved(&self) -> bool {
-        self.current_state[0] == self.final_state[0] &&
-        self.current_state[1] == self.final_state[1] &&
-        self.current_state[2] == self.final_state[2]
-    }
-
-    fn recursive_solve(&mut self, s:[usize;3]) {
-        self.solution.push(s.clone());
-        self.current_state = s;
-        self.visited[self.current_state[0]][self.current_state[1]][self.current_state[2]] = true;
-        //Since both bunnies are equivalent
-        self.visited[self.current_state[1]][self.current_state[0]][self.current_state[2]] = true;
-        
-        if self.is_solved() {
-            println!("SOLUTION FOUND!");
+    fn recursive_solve(&mut self, s:[usize;3], step:u32) {
+        if self.is_solution(s) {
+            println!("SOLUTION FOUND in {} steps!", step-1);
             println!("{:?}", self.solution);
             return;
         }
-    
-        self.allowed_next_states().into_iter().rev().for_each(|s| {
-            if !self.visited[s[0]][s[1]][s[2]] {
-                self.recursive_solve(s);
+        
+        self.solution.push(s.clone());
+        self.current_state = s;
+        self.visited[s[0]][s[1]][s[2]] = step;
+        //Since both bunnies are equivalent
+        self.visited[s[1]][s[0]][s[2]] = step;
+        
+        self.allowed_next_states(s).into_iter().rev().for_each(|x| {
+            if self.visited[x[0]][x[1]][x[2]] == 0 {
+                self.recursive_solve(x, step+1);
+            } else if self.visited[x[0]][x[1]][x[2]] > step+1  {
+                //println!("Found a faster path to {:?} in {} steps (was {})", x, step+1, self.visited[x[0]][x[1]][x[2]]);
+                self.recursive_solve(x, step+1);
             }
         });
         self.solution.pop();
@@ -135,6 +150,5 @@ fn main() {
     let mut g:Graph = Default::default();
     g.init();
     let initial_state:[usize;3] = g.current_state.clone();
-    g.recursive_solve(initial_state);
-
+    g.recursive_solve(initial_state, 1);
 }
